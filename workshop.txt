@@ -1,0 +1,58 @@
+version=1
+id=3764185018
+title=[Dev] Hot Reload Mods
+description=[h1]Hot Reload Mods[/h1]
+description=[b]*** DEVELOPER TOOL ONLY - IF YOU ARE A PLAYER, THIS IS NOT FOR YOU. ***[/b]
+description=[b]This mod does NOTHING during normal play.[/b] It is for MOD AUTHORS only: it hot-reloads a mod's Lua code in-game so developers don't have to restart.
+description=
+description=[b]What it does[/b]
+description=A single in-game watcher hot-reloads the Lua of any mod that opts in - no game restart (Build 42). Enable it alongside the mod(s) you're actively developing.
+description=
+description=[b]Why (vs the built-in options)[/b]
+description=[list]
+description=[*] [b]The built-in options are all manual.[/b] F11 "Experimental Mod Reload" (reloadLuaFile): one file at a time, selected and clicked in-game, requires -debug.
+description=[*] [b]"Reset Lua" buttons[/b] are a full Lua-state reset, manual, mostly on the title screen.
+description=[*] [b]This mod reloads brand-new files, not just already-loaded ones.[/b] reloadLuaFile (and F11 on top of it) can only reload files that existed at boot; a .lua file you create mid-session throws FileNotFoundException because its path mapping is fixed at startup. This watcher loads new files too, so you can add files while the game runs and never restart.
+description=[*] [b]Automatic.[/b] A file bump from your editor fires the reload; no in-game clicking.
+description=[*] [b]Whole filelist per mod.[/b] Reloads every file you list in one go, in load order.
+description=[*] [b]Live in a running save.[/b] No title-screen reset, no restart.
+description=[/list]
+description=
+description=[b]How to use it (mod authors)[/b]
+description=[olist]
+description=[*] Enable this mod in your save alongside the mod you're developing.
+description=[*] In your mod's Lua, register it - 3 lines, and a harmless no-op when this mod isn't enabled (nothing reads the table):
+description=[code]
+description=HotReload = HotReload or {}
+description=HotReload.mods = HotReload.mods or {}
+description=HotReload.mods["YourModId"] = { enabled = YourMod.isDebug }  -- key MUST be your mod.info id
+description=[/code]
+description=[*] Add two files to your mod: [b]media/reload.trigger[/b] (any value) and [b]media/reload.filelist[/b] (mod-relative Lua paths to reload, one per line in load order; blank lines and lines starting with # are ignored):
+description=[code]
+description=# shared files load first, then client
+description=media/lua/shared/MyMod_Util.lua
+description=media/lua/client/MyMod_Main.lua
+description=[/code]
+description=[*] Make the files you list [b]reload-safe[/b]: every file is re-run on each reload, so any file that registers an event handler must store the handler on a global and remove-then-add, or each reload stacks a duplicate. Files that only define functions or data need nothing. Example:
+description=[code]
+description=-- instead of a bare Events.OnTick.Add(onTick):
+description=if MyMod._onTick then Events.OnTick.Remove(MyMod._onTick) end
+description=MyMod._onTick = onTick
+description=Events.OnTick.Add(MyMod._onTick)
+description=[/code]
+description=[*] To fire a reload, write a NEW value into your mod's media/reload.trigger from outside the game (save it from your editor, or echo a fresh value). Watch the console - or the in-game toast - for the "[HotReload] YourModId ... ok" confirmation.
+description=[/olist]
+description=
+description=[b]Notes and requirements[/b]
+description=[list]
+description=[*] Lua only - it reloads .lua files, not assets (item icons/textures, scripts, models, animations, translations). Those still need a full reload.
+description=[*] Reloads only fire while the game is UNPAUSED. Changes made while paused are detected and deferred until you unpause.
+description=[*] The trigger must actually change value - writing the same value again does nothing. Bump it (e.g. increment a number).
+description=[*] enabled gates it per mod - pass your mod's debug flag (a bool or a function); omit it to fall back to the game's -debug. Ship your release builds with debug OFF so this never runs for players.
+description=[*] Build 42 only. This is a dev tool, not meant for normal play - safe to leave disabled when you're not modding.
+description=[/list]
+description=
+description=[b]Source & license[/b]
+description=[url=https://github.com/deckard93/PZModReload]github.com/deckard93/PZModReload[/url] - MIT licensed, use and adapt freely.
+tags=Build 42;Framework
+visibility=public

@@ -1,0 +1,9 @@
+name=[Dev] Hot Reload Mods (local)
+id=ModHotReloadLocal
+modversion=1.0.0
+author=deckard
+icon=icon.png
+poster=poster.png
+versionMin=42.0
+incompatible=41.78 or earlier
+description=Dev tool. A single in-game watcher that hot-reloads the Lua of any mod that registers itself, with no game restart. Enable it alongside the mod(s) you're developing. Consumer mods opt in with 3 lines + a reload.trigger / reload.filelist; a reload fires when you bump the trigger from outside the game. Does nothing on its own - not meant for normal play.
