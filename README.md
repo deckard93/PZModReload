@@ -6,7 +6,9 @@ A **developer tool** for Project Zomboid **Build 42**. A single in-game watcher 
 
 ## What it does
 
-About once a second (while the game is unpaused) it watches a small *trigger* file in each opted-in mod. When you change that file from **outside** the game (your editor or a terminal), it re-runs that mod's listed Lua files via `getModFileReader` + `loadstring`, reloading **both already-loaded and brand-new files**, which the engine's own `reloadLuaFile` can't do. One watcher handles every enabled mod by id.
+About once a second it watches a small *trigger* file in each opted-in mod. When you change that file from **outside** the game (your editor or a terminal), it re-runs that mod's listed Lua files via `getModFileReader` + `loadstring`, reloading **both already-loaded and brand-new files**, which the engine's own `reloadLuaFile` can't do. One watcher handles every enabled mod by id.
+
+It runs in **single-player, on a multiplayer client, and on a server process** — including a dedicated server, where it reloads server-tier Lua live. That is strictly more than the console's `reloadlua`, which only re-runs server files that existed at boot.
 
 ## Why (vs the built-in options)
 
@@ -33,6 +35,10 @@ This mod is different:
    HotReload.mods["YourModId"] = { enabled = YourMod.isDebug }  -- key = your mod.info id
    ```
 
+   **Put this in a `media/lua/shared/` file if you want server-side reloading.** A server process loads
+   only `shared/` and `server/`, so a registration sitting in `client/` never runs there and the watcher
+   finds nothing to watch. Registering from `client/` still works fine for single-player.
+
    `enabled` is checked on every poll: pass your debug flag as a **bool or a function**, or omit it to fall back to the game's `-debug`. Ship release builds with debug **off** so this never runs for players.
 
 3. Add two files to your mod:
@@ -44,6 +50,10 @@ This mod is different:
      media/lua/shared/MyMod_Util.lua
      media/lua/client/MyMod_Main.lua
      ```
+
+     A server **skips the `media/lua/client/` entries** and logs each as `skip ... -- client tier`.
+     That tier has no `ISUI`, and the engine never loads it on a server either, so running it there
+     would only throw. One list therefore serves both sides.
 
 4. Make the files you list **reload-safe.** Every file is re-run on each reload, so any file that registers an event handler must store the handler on a global and remove-then-add, or each reload stacks a duplicate (double tick/render loops). Files that only define functions or data need nothing:
 
@@ -59,6 +69,8 @@ This mod is different:
 ## Notes & requirements
 
 - **Lua only.** It re-runs `.lua` files (via `loadstring`); it does **not** reload assets: item icons/textures, item/recipe scripts (`.txt`), models, animations, or translations. Those still need a full game reload/restart.
-- Reloads only fire while the game is **unpaused**. Changes made while paused are detected and deferred until you unpause.
+- On a **client**, reloads only fire while the game is unpaused; changes made while paused are detected and deferred until you unpause. A **server** ignores this — it reports itself as permanently paused, so honouring the flag there would defer every reload forever.
 - The trigger must actually **change value**: writing the same value again does nothing. Bump it (e.g. increment a number).
+- **Write the trigger atomically** (write a temp file, then rename over it). A writer that truncates first is briefly readable as empty, and some editors do exactly that.
+- Client and server read the **same** trigger file, so on a local server one bump reloads both sides.
 - **Build 42 only.** This is a dev tool, not meant for normal play; safe to leave disabled when you're not modding.
